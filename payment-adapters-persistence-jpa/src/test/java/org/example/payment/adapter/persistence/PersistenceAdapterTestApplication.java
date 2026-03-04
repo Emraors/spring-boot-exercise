@@ -1,12 +1,9 @@
 package org.example.payment.adapter.persistence;
 
-import org.springframework.boot.autoconfigure.SpringBootApplication;
+import org.springframework.boot.SpringBootConfiguration;
+import org.springframework.boot.autoconfigure.EnableAutoConfiguration;
 
-/**
- * Minimal @SpringBootApplication for @DataJpaTest to discover.
- * Lives in test sources only — never packaged into production jar.
- */
-@SpringBootApplication
+@SpringBootConfiguration
+@EnableAutoConfiguration
 class PersistenceAdapterTestApplication {
 }
-
