@@ -1,0 +1,144 @@
+openapi: 3.0.3
+info:
+  title: Payment API
+  description: REST API for managing payments
+  version: 1.0.0
+
+servers:
+  - url: /api/v1
+
+tags:
+  - name: Payments
+    description: Payment management operations
+
+paths:
+  /payments:
+    post:
+      tags:
+        - Payments
+      operationId: createPayment
+      summary: Create a new payment
+      description: Creates a new payment and returns the created payment details.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CreatePaymentRequest'
+      responses:
+        '201':
+          description: Payment created successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PaymentResponse'
+        '400':
+          description: Validation error
+          content:
+            application/problem+json:
+              schema:
+                $ref: '#/components/schemas/ProblemDetail'
+
+  /payments/{id}:
+    get:
+      tags:
+        - Payments
+      operationId: getPaymentById
+      summary: Get a payment by ID
+      description: Returns a single payment by its unique identifier.
+      parameters:
+        - name: id
+          in: path
+          required: true
+          description: Unique identifier of the payment
+          schema:
+            type: string
+            format: uuid
+      responses:
+        '200':
+          description: Payment found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PaymentResponse'
+        '404':
+          description: Payment not found
+          content:
+            application/problem+json:
+              schema:
+                $ref: '#/components/schemas/ProblemDetail'
+
+components:
+  schemas:
+    CreatePaymentRequest:
+      type: object
+      required:
+        - cents
+        - currency
+        - idempotencyKey
+      properties:
+        cents:
+          type: integer
+          format: int64
+          minimum: 1
+          description: Payment amount in cents
+          example: 1000
+        currency:
+          type: string
+          minLength: 1
+          description: ISO 4217 currency code
+          example: USD
+        idempotencyKey:
+          type: string
+          minLength: 1
+          description: Unique key to ensure idempotency of the payment
+          example: "550e8400-e29b-41d4-a716-446655440000"
+
+    PaymentResponse:
+      type: object
+      required:
+        - id
+        - cents
+        - currency
+        - status
+        - createdAt
+      properties:
+        id:
+          type: string
+          format: uuid
+          description: Unique identifier of the payment
+        cents:
+          type: integer
+          format: int64
+          description: Payment amount in cents
+        currency:
+          type: string
+          description: ISO 4217 currency code
+        status:
+          type: string
+          description: Current status of the payment
+          enum:
+            - CREATED
+            - AUTHORIZED
+            - DECLINED
+        createdAt:
+          type: string
+          format: date-time
+          description: Timestamp when the payment was created
+
+    ProblemDetail:
+      type: object
+      properties:
+        type:
+          type: string
+          format: uri
+        title:
+          type: string
+        status:
+          type: integer
+        detail:
+          type: string
+        instance:
+          type: string
+          format: uri
+

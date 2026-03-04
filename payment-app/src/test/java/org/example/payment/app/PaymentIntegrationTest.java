@@ -2,7 +2,6 @@ package org.example.payment.app;
 
 import com.github.tomakehurst.wiremock.WireMockServer;
 import com.github.tomakehurst.wiremock.core.WireMockConfiguration;
-import org.example.payment.adapter.web.dto.PaymentResponse;
 import org.junit.jupiter.api.*;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.example.payment.app.PaymentApplication;
@@ -22,28 +21,9 @@ import java.util.Map;
 import static com.github.tomakehurst.wiremock.client.WireMock.*;
 import static org.assertj.core.api.Assertions.assertThat;
 
-@SpringBootTest(webEnvironment = SpringBootTest.WebEnvironment.RANDOM_PORT,
-                classes = PaymentApplication.class)
-@Testcontainers
 @ActiveProfiles("test")
 @DisplayName("Payment Integration Tests (@SpringBootTest + Testcontainers + WireMock)")
-class PaymentIntegrationTest {
-
-    @Container
-    static PostgreSQLContainer<?> postgres = new PostgreSQLContainer<>("postgres:15-alpine")
-            .withDatabaseName("payments")
-            .withUsername("payments")
-            .withPassword("payments");
-
-    static WireMockServer wireMock = new WireMockServer(WireMockConfiguration.options().dynamicPort());
-
-    @DynamicPropertySource
-    static void configureProperties(DynamicPropertyRegistry registry) {
-        registry.add("spring.datasource.url", postgres::getJdbcUrl);
-        registry.add("spring.datasource.username", postgres::getUsername);
-        registry.add("spring.datasource.password", postgres::getPassword);
-        registry.add("payment.provider.base-url", () -> "http://localhost:" + wireMock.port());
-    }
+class PaymentIntegrationTest extends TestContainerConfig {
 
     @BeforeAll
     static void startWireMock() {
@@ -186,5 +166,8 @@ class PaymentIntegrationTest {
 
         assertThat(resp.getStatusCode()).isEqualTo(HttpStatus.BAD_REQUEST);
     }
+
+    record PaymentResponse(java.util.UUID id, long cents, String currency, String status,
+                           java.time.Instant createdAt) {}
 }
 
