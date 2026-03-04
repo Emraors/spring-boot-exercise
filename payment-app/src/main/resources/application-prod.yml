@@ -1,0 +1,43 @@
+# ============================================================
+# Profile: prod  (production)
+# Activate with:  --spring.profiles.active=prod
+#                 or  SPRING_PROFILES_ACTIVE=prod
+#
+# Secrets are read from environment variables — never commit
+# real credentials to source control.
+# ============================================================
+
+spring:
+  datasource:
+    url: ${DB_URL}                # e.g. jdbc:postgresql://db-host:5432/payments
+    username: ${DB_USERNAME}
+    password: ${DB_PASSWORD}
+
+  jpa:
+    show-sql: false               # never log SQL in production
+
+  # Use a real cache in production (switch to redis when ready)
+  cache:
+    type: simple
+
+payment:
+  provider:
+    base-url: ${PAYMENT_PROVIDER_URL}   # e.g. https://provider.example.com
+
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health,info     # only expose safe endpoints in prod
+  endpoint:
+    health:
+      show-details: when-authorized   # hide internal details from unauthenticated users
+
+server:
+  port: ${PORT:8080}             # allow the port to be overridden via env var
+
+logging:
+  level:
+    root: WARN
+    org.example.payment: INFO
+

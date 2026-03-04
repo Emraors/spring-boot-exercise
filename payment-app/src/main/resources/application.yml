@@ -2,10 +2,13 @@ spring:
   application:
     name: payment-app
 
+  # Active profile defaults to 'dev' when none is specified externally.
+  # Override via: --spring.profiles.active=prod  or  SPRING_PROFILES_ACTIVE=prod
+  profiles:
+    active: dev
+
+  # --- shared defaults (all profiles inherit these) ---
   datasource:
-    url: jdbc:postgresql://localhost:5432/payments
-    username: payments
-    password: payments
     driver-class-name: org.postgresql.Driver
 
   jpa:
@@ -24,9 +27,6 @@ spring:
   cache:
     type: simple
 
-payment:
-  provider:
-    base-url: http://localhost:8081
 
 management:
   endpoints:

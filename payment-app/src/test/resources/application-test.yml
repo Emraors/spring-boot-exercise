@@ -1,3 +1,12 @@
+# ============================================================
+# Profile: test  (integration tests)
+# Activated by @ActiveProfiles("test") in PaymentIntegrationTest.
+#
+# spring.datasource.*  and  payment.provider.base-url  are
+# injected at runtime by @DynamicPropertySource (Testcontainers
+# for Postgres, WireMock for the provider URL).
+# ============================================================
+
 spring:
   jpa:
     hibernate:
@@ -9,5 +18,7 @@ spring:
   cache:
     type: simple
 
-# datasource and provider url are set dynamically by @DynamicPropertySource in the test
+logging:
+  level:
+    org.example.payment: DEBUG
 

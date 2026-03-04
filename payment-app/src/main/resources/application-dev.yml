@@ -1,0 +1,37 @@
+# ============================================================
+# Profile: dev  (local development)
+# Active automatically when no other profile is set.
+# ============================================================
+
+spring:
+  datasource:
+    # Defaults to 'localhost' (IntelliJ / mvn spring-boot:run).
+    # docker-compose overrides this to 'postgres' (the service name) via DB_HOST env var.
+    url: jdbc:postgresql://${DB_HOST:localhost}:5432/payments
+    username: payments
+    password: payments
+
+  jpa:
+    show-sql: true          # print SQL statements to console
+    properties:
+      hibernate:
+        format_sql: true
+
+  # Use a fast in-memory cache while developing
+  cache:
+    type: simple
+
+payment:
+  provider:
+    base-url: http://localhost:8081
+
+management:
+  endpoint:
+    health:
+      show-details: always  # expose full health detail locally
+
+logging:
+  level:
+    org.example.payment: DEBUG
+    org.springframework.web: DEBUG
+
