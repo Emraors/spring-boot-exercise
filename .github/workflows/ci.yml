@@ -1,0 +1,137 @@
+name: CI
+
+on:
+  push:
+    branches: [ "main", "develop" ]
+  pull_request:
+    branches: [ "main", "develop" ]
+
+# Cancel in-progress runs for the same branch/PR
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+
+  # ───────────────────────────────────────────────────────────────────────────
+  # JOB 1 – Unit & Slice tests (no Docker required, very fast)
+  # Covers: payment-domain, payment-application, payment-adapters-*
+  # ───────────────────────────────────────────────────────────────────────────
+  unit-and-slice-tests:
+    name: Unit & Slice Tests
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up Java 17 (Temurin) with Maven cache
+        uses: actions/setup-java@v4
+        with:
+          java-version: '17'
+          distribution: 'temurin'
+          cache: 'maven'
+
+      - name: Run unit & slice tests
+        run: |
+          mvn test \
+            --no-transfer-progress \
+            -pl payment-domain,payment-application,payment-adapters-web,payment-adapters-persistence-jpa,payment-adapters-provider-http \
+            -am
+
+      - name: Upload test reports
+        uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: unit-slice-test-reports
+          path: "**/target/surefire-reports/*.xml"
+          retention-days: 7
+
+  # ───────────────────────────────────────────────────────────────────────────
+  # JOB 2 – Integration Tests (Testcontainers + WireMock, requires Docker)
+  # GitHub-hosted ubuntu-latest runners have Docker pre-installed.
+  # ───────────────────────────────────────────────────────────────────────────
+  integration-tests:
+    name: Integration Tests
+    runs-on: ubuntu-latest
+    needs: unit-and-slice-tests
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up Java 17 (Temurin) with Maven cache
+        uses: actions/setup-java@v4
+        with:
+          java-version: '17'
+          distribution: 'temurin'
+          cache: 'maven'
+
+      - name: Build all modules (no tests — produce jars needed by IT classpath)
+        run: |
+          mvn install \
+            --no-transfer-progress \
+            -DskipTests \
+            -pl payment-app -am
+
+      - name: Run integration tests
+        env:
+          TESTCONTAINERS_RYUK_DISABLED: "false"
+        run: |
+          mvn verify \
+            --no-transfer-progress \
+            -pl payment-app
+
+      - name: Upload IT test reports
+        uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: integration-test-reports
+          path: "payment-app/target/surefire-reports/*.xml"
+          retention-days: 7
+
+  # ───────────────────────────────────────────────────────────────────────────
+  # JOB 3 – Build & package the fat jar (only after all tests pass)
+  # ───────────────────────────────────────────────────────────────────────────
+  build:
+    name: Build & Package
+    runs-on: ubuntu-latest
+    needs: [ unit-and-slice-tests, integration-tests ]
+
+    outputs:
+      version: ${{ steps.get-version.outputs.version }}
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up Java 17 (Temurin) with Maven cache
+        uses: actions/setup-java@v4
+        with:
+          java-version: '17'
+          distribution: 'temurin'
+          cache: 'maven'
+
+      - name: Build fat jar (tests already ran in previous jobs)
+        run: |
+          mvn package \
+            --no-transfer-progress \
+            -DskipTests \
+            -pl payment-app -am
+
+      - name: Extract project version
+        id: get-version
+        run: |
+          VERSION=$(mvn help:evaluate \
+            -Dexpression=project.version \
+            -q -DforceStdout \
+            -pl payment-app)
+          echo "version=${VERSION}" >> "$GITHUB_OUTPUT"
+
+      - name: Upload fat jar as artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: payment-app-${{ steps.get-version.outputs.version }}
+          path: payment-app/target/payment-app-*.jar
+          if-no-files-found: error
+          retention-days: 30

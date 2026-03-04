@@ -1,0 +1,26 @@
+name: Dependency Review
+
+on:
+  pull_request:
+    branches: [ "main", "develop" ]
+
+permissions:
+  contents: read
+  pull-requests: write   # allow posting a summary comment on the PR
+
+jobs:
+  dependency-review:
+    name: Dependency Review (CVE scan)
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Dependency Review
+        uses: actions/dependency-review-action@v4
+        with:
+          # Fail the check on HIGH or CRITICAL CVEs
+          fail-on-severity: high
+          # Post a summary comment on the PR
+          comment-summary-in-pr: always
